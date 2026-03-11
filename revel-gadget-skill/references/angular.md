@@ -480,6 +480,9 @@ Or use the built-in deploy script: `npm run deploy:gadget`.
 npm install                       # install dependencies
 ng serve                          # start dev server
 ng build                          # production build
-npm run build:gadget              # build + generate gadget XML
+npx gadgetizer                    # FIRST TIME ONLY: interactive setup (configure deployment URL)
+npm run build:gadget              # subsequent builds: build + generate gadget XML (non-interactive)
 npm run deploy:gadget             # build + gadgetize + deploy to GitHub Pages
 ```
+
+Run `npx gadgetizer` (without `--build-only`) once after creating the GitHub repo to configure the deployment URL. After that, use `npm run build:gadget` for all subsequent builds.

@@ -123,7 +123,27 @@ prefs:
 
 The `depends` field makes a preference conditionally visible based on other preference values. Condition types: `any_of`, `all_of`, `none_of`.
 
-### 5. GitHub Actions workflow (only if user wants GitHub Pages hosting)
+### 5. Initial Gadgetizer setup (after GitHub repo creation)
+
+After scaffolding the project and creating a GitHub repository, the developer must run the Gadgetizer **without** the `--build-only` flag for the initial setup:
+
+```bash
+npx gadgetizer
+```
+
+This interactive command:
+- Detects the project type (React, Vue, Vanilla JS, or Angular)
+- Prompts for the GitHub Pages deployment URL (e.g. `https://{user}.github.io/{repo}/`)
+- Installs required SDK dependencies (`@reveldigital/client-sdk`, `@reveldigital/gadget-types`)
+- Generates the initial gadget XML in the build output directory
+
+**Important:** The GitHub repo should be created first so the correct GitHub Pages URL is known. This URL is embedded into the generated gadget XML and is how the Revel Digital CMS locates the gadget assets.
+
+After this initial setup, all subsequent builds use the `--build-only` flag (which is what the `build:gadget` script does). The GitHub Actions workflow also uses `--build-only` since the deployment URL is already configured.
+
+**Tell the developer:** After creating their GitHub repo, run `npx gadgetizer` once to complete the initial configuration, then use `npm run build:gadget` for all future builds.
+
+### 6. GitHub Actions workflow (only if user wants GitHub Pages hosting)
 
 Create `.github/workflows/deploy.yml`:
 
@@ -165,7 +185,7 @@ jobs:
 
 Adjust `publish_dir` based on framework — see each reference file for the correct build output path.
 
-### 6. Sample UX that demonstrates the SDK
+### 7. Sample UX that demonstrates the SDK
 
 The scaffolded app should include a working demo that:
 
@@ -233,24 +253,32 @@ prefs.getArray('myListPref');
 
 The Gadgetizer CLI tool transforms a standard web app build into a Revel Digital gadget package. It reads `gadget.yaml` from the project root and generates the gadget XML definition in the build output directory.
 
-Usage:
+### Initial setup (run once, after creating the GitHub repo):
+```bash
+npx gadgetizer
+```
+
+This interactive mode prompts for the GitHub Pages deployment URL and configures the project. It should be run **after** the GitHub repository has been created so the correct public URL (e.g. `https://{user}.github.io/{repo}/`) can be provided. The URL is embedded into the generated gadget XML.
+
+### Subsequent builds (non-interactive):
 ```bash
 npx gadgetizer --build-only
 ```
 
-This should run AFTER the framework build step. The `build:gadget` convenience script in package.json chains both together: `npm run build && npx gadgetizer --build-only`.
+The `--build-only` flag skips interactive prompts and just regenerates the XML using the previously configured deployment URL. This is what the `build:gadget` script uses, and what runs in CI/CD pipelines.
+
+The `build:gadget` convenience script in package.json chains the framework build with the non-interactive Gadgetizer step: `npm run build && npx gadgetizer --build-only`.
 
 ## `base` / `publicUrl` Configuration
 
-For GitHub Pages hosting, the `base` (Vite) or `publicUrl` (Parcel) must be set so asset paths resolve correctly. There are two options:
+For GitHub Pages hosting, the `base` (Vite) or `publicUrl` (Parcel) must be set so asset paths resolve correctly. The reference files use relative paths (`'./'`) by default, which works for local development.
 
-1. **Relative paths** (`'./'`) — works universally but may break with client-side routing
-2. **Full GitHub Pages URL** (e.g. `'https://{user}.github.io/{repo}/'`) — more explicit, recommended for production
-
-The reference files use relative paths (`'./'`) by default. For production GitHub Pages deployments, replace with the full URL.
+When the developer runs `npx gadgetizer` (the initial interactive setup), the tool prompts for the GitHub Pages deployment URL and embeds it into the generated gadget XML. The `base`/`publicUrl` in the bundler config should match this URL for production builds. Relative paths (`'./'`) work in most cases, but for production GitHub Pages deployments the full URL (e.g. `'https://{user}.github.io/{repo}/'`) is more explicit and recommended.
 
 ## Important Notes
 
+- After scaffolding, the developer must run `npx gadgetizer` (without `--build-only`) once to complete the initial interactive setup. This should happen after the GitHub repo is created so the deployment URL can be configured.
+- Subsequent builds use `npm run build:gadget` which calls `npx gadgetizer --build-only` (non-interactive).
 - The `gadget.yaml` file must be in the **project root** — the Gadgetizer reads it from there.
 - The gadget XML is generated automatically by the Gadgetizer — never hand-write XML.
 - Preferences defined in `gadget.yaml` become available at runtime via `client.getPrefs()`.

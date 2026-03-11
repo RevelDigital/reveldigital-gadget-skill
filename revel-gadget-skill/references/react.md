@@ -402,5 +402,8 @@ The deploy workflow `publish_dir` should be `./dist` for Vite React projects.
 npm install           # install dependencies
 npm run dev           # start dev server
 npm run build         # production build to ./dist
-npm run build:gadget  # build + generate gadget XML
+npx gadgetizer        # FIRST TIME ONLY: interactive setup (configure deployment URL)
+npm run build:gadget  # subsequent builds: build + generate gadget XML (non-interactive)
 ```
+
+Run `npx gadgetizer` (without `--build-only`) once after creating the GitHub repo to configure the deployment URL. After that, use `npm run build:gadget` for all subsequent builds.

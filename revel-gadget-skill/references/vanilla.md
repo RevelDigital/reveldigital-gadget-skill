@@ -200,5 +200,8 @@ For Parcel projects, the default build output is `./dist`. The deploy workflow `
 npm install           # install dependencies
 npm start             # start dev server (Parcel)
 npm run build         # production build to ./dist
-npm run build:gadget  # build + generate gadget XML
+npx gadgetizer        # FIRST TIME ONLY: interactive setup (configure deployment URL)
+npm run build:gadget  # subsequent builds: build + generate gadget XML (non-interactive)
 ```
+
+Run `npx gadgetizer` (without `--build-only`) once after creating the GitHub repo to configure the deployment URL. After that, use `npm run build:gadget` for all subsequent builds.
