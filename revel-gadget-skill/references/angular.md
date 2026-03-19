@@ -9,11 +9,11 @@ Scaffold a Revel Digital gadget using Angular + the **`@reveldigital/player-clie
 The recommended approach for Angular is to use the library's schematic, which configures everything automatically:
 
 ```bash
-ng new my-gadget --directory ./
+ng new my-gadget --directory ./ --standalone
 ng add @reveldigital/player-client@latest
 ```
 
-The schematic adds the library, creates the `assets/gadget.yaml`, and configures build scripts (`build:gadget`, `deploy:gadget`).
+The `--standalone` flag tells Angular 17 to generate a standalone component app (no NgModule). The schematic adds the library, creates the `assets/gadget.yaml`, and configures build scripts (`build:gadget`, `deploy:gadget`).
 
 If scaffolding files manually (e.g. from this skill), create the structure below.
 
@@ -36,6 +36,7 @@ If scaffolding files manually (e.g. from this skill), create the structure below
 │   └── workflows/
 │       └── deploy.yml          # only if GitHub Pages hosting
 ├── gadget.yaml                 # project root — Gadgetizer reads from here
+├── .browserslistrc
 ├── angular.json
 ├── package.json
 └── tsconfig.json
@@ -54,29 +55,29 @@ Note: The `gadget.yaml` must exist in the project root for the Gadgetizer, AND i
     "start": "ng serve",
     "build": "ng build",
     "build:gadget": "npm run build && npx gadgetizer --build-only",
-    "deploy:gadget": "npm run build:gadget && npx angular-cli-ghpages --dir=dist/{gadget-name}/browser"
+    "deploy:gadget": "npm run build:gadget && npx angular-cli-ghpages --dir=dist/{gadget-name}"
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "^19.0.0",
-    "@angular/common": "^19.0.0",
-    "@angular/compiler": "^19.0.0",
-    "@angular/core": "^19.0.0",
-    "@angular/platform-browser": "^19.0.0",
-    "@angular/platform-browser-dynamic": "^19.0.0",
+    "@angular/animations": "^17.0.0",
+    "@angular/common": "^17.0.0",
+    "@angular/compiler": "^17.0.0",
+    "@angular/core": "^17.0.0",
+    "@angular/platform-browser": "^17.0.0",
+    "@angular/platform-browser-dynamic": "^17.0.0",
     "@reveldigital/player-client": "latest",
     "@reveldigital/gadget-types": "latest",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.14.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.0.0",
-    "@angular/cli": "^19.0.0",
-    "@angular/compiler-cli": "^19.0.0",
+    "@angular-devkit/build-angular": "^17.0.0",
+    "@angular/cli": "^17.0.0",
+    "@angular/compiler-cli": "^17.0.0",
     "@reveldigital/gadgetizer": "latest",
     "angular-cli-ghpages": "^2.0.0",
-    "typescript": "~5.6.0"
+    "typescript": "~5.2.0"
   }
 }
 ```
@@ -101,11 +102,11 @@ Key differences from React/Vue/Vanilla:
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist",
+            "outputPath": "dist/{gadget-name}",
             "index": "src/index.html",
-            "browser": "src/main.ts",
+            "main": "src/main.ts",
             "tsConfig": "tsconfig.json",
             "baseHref": "./",
             "assets": [
@@ -146,6 +147,8 @@ Key differences from React/Vue/Vanilla:
 
 The `gadget.yaml` in `src/assets/` is copied to the build output root via the assets config so the Gadgetizer can find it.
 
+Note: Angular 17 with the `browser` builder outputs directly to `dist/{gadget-name}/` (no `/browser/` subfolder). This differs from Angular 17+ projects using the newer `application` builder.
+
 ## tsconfig.json
 
 ```json
@@ -161,7 +164,7 @@ The `gadget.yaml` in `src/assets/` is copied to the build output root via the as
     "esModuleInterop": true,
     "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "importHelpers": true,
     "sourceMap": true,
     "declaration": false,
@@ -177,6 +180,20 @@ The `gadget.yaml` in `src/assets/` is copied to the build output root via the as
     "strictTemplates": true
   }
 }
+```
+
+## .browserslistrc
+
+This file must be created in the project root. It ensures the Angular build targets a broad range of devices compatible with Angular 17, which is important because gadgets run on diverse signage hardware.
+
+```
+last 2 Chrome versions
+last 1 Firefox version
+last 2 Edge major versions
+last 2 Safari major versions
+last 2 iOS major versions
+Firefox ESR
+not dead
 ```
 
 ## src/index.html
@@ -456,7 +473,7 @@ All other methods (`getDeviceKey()`, `getDeviceTime()`, `getPrefs()`, `sendComma
 
 ## GitHub Actions
 
-For Angular 17+ with the `application` builder, the build output lands in `dist/{gadget-name}/browser/`. Update the workflow:
+With the `browser` builder, the build output lands in `dist/{gadget-name}/`. Update the workflow:
 
 ```yaml
       - name: Build
@@ -469,7 +486,7 @@ For Angular 17+ with the `application` builder, the build output lands in `dist/
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist/{gadget-name}/browser
+          publish_dir: ./dist/{gadget-name}
 ```
 
 Or use the built-in deploy script: `npm run deploy:gadget`.

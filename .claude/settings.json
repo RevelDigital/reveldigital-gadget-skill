@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "C:\\Users\\mike_\\gadget-skill-workspace\\iteration-1\\eval-weather-display\\with_skill\\outputs",
+      "C:\\Users\\mike_\\gadget-skill-workspace\\iteration-1\\eval-announcement-board\\with_skill\\outputs\\src",
+      "C:\\Users\\mike_\\gadget-skill-workspace\\iteration-1\\eval-clock-widget\\with_skill\\outputs\\src"
+    ]
+  }
+}
