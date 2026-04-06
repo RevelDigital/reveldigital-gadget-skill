@@ -15,6 +15,8 @@ ng add @reveldigital/player-client@latest
 
 The `--standalone` flag tells Angular 17 to generate a standalone component app (no NgModule). The schematic adds the library, creates the `assets/gadget.yaml`, and configures build scripts (`build:gadget`, `deploy:gadget`).
 
+**Critical — fix the builder after `ng new`:** Angular 17's `ng new` generates `angular.json` with the `application` builder (`@angular-devkit/build-angular:application`), which outputs to `dist/browser/` instead of `dist/{gadget-name}/`. This breaks the deploy script and Gadgetizer. After scaffolding, you **must** replace the generated `angular.json` with the one shown below, which uses the `browser` builder (`@angular-devkit/build-angular:browser`) so the output goes to `dist/{gadget-name}/`.
+
 If scaffolding files manually (e.g. from this skill), create the structure below.
 
 ## Project Structure
@@ -147,7 +149,7 @@ Key differences from React/Vue/Vanilla:
 
 The `gadget.yaml` in `src/assets/` is copied to the build output root via the assets config so the Gadgetizer can find it.
 
-Note: Angular 17 with the `browser` builder outputs directly to `dist/{gadget-name}/` (no `/browser/` subfolder). This differs from Angular 17+ projects using the newer `application` builder.
+**Important:** The `browser` builder outputs directly to `dist/{gadget-name}/` (no `/browser/` subfolder). Do NOT use the `application` builder — it outputs to `dist/browser/` which breaks the deploy script and Gadgetizer. Always use `@angular-devkit/build-angular:browser` as shown above.
 
 ## tsconfig.json
 
