@@ -34,9 +34,24 @@ For full API and platform documentation, see the [Revel Digital Developer Portal
 
 > Requires **Code Execution** to be enabled in Settings → Capabilities.
 
-### Claude Code (CLI)
+### Claude Code (CLI) — Plugin Marketplace
 
-Copy the skill folder into your personal or project skills directory:
+The easiest way to install in Claude Code is via the built-in plugin marketplace. In any Claude Code session, run:
+
+```
+/plugin marketplace add RevelDigital/reveldigital-gadget-skill
+/plugin install revel-gadget@reveldigital
+```
+
+Updates are fetched with:
+
+```
+/plugin marketplace update reveldigital
+```
+
+### Claude Code (CLI) — Manual Install
+
+Prefer to skip the marketplace? Copy the skill folder directly into your personal or project skills directory:
 
 ```bash
 # Personal skills (available in all projects)
@@ -65,16 +80,21 @@ Once installed, just ask Claude to build a gadget:
 
 Claude will ask for any missing details (framework, name, hosting preference), then generate the full project.
 
-## Skill Contents
+## Repo Contents
 
 ```
-revel-gadget-skill/
-├── SKILL.md                    # Main skill instructions + SDK API reference
-└── references/
-    ├── react.md                # Vite + React + TypeScript scaffold
-    ├── vue.md                  # Vite + Vue 3 + JavaScript scaffold
-    ├── vanilla.md              # Parcel + plain JS scaffold
-    └── angular.md              # Angular CLI + @reveldigital/player-client scaffold
+.
+├── .claude-plugin/
+│   └── marketplace.json        # Plugin marketplace manifest
+├── revel-gadget-skill/
+│   ├── SKILL.md                # Main skill instructions + SDK API reference
+│   └── references/
+│       ├── react.md            # Vite + React + TypeScript scaffold
+│       ├── vue.md              # Vite + Vue 3 + JavaScript scaffold
+│       ├── vanilla.md          # Parcel + plain JS scaffold
+│       └── angular.md          # Angular CLI + @reveldigital/player-client scaffold
+├── build.sh                    # Rebuilds revel-gadget-skill.zip
+└── revel-gadget-skill.zip      # Prebuilt Claude.ai upload bundle
 ```
 
 ## Related Resources
