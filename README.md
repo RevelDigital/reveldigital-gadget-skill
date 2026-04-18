@@ -4,6 +4,8 @@ A [Claude AI Skill](https://support.claude.com/en/articles/12512198-how-to-creat
 
 Give Claude a gadget name, pick a framework, and get a fully buildable project with the SDK wired up, a `gadget.yaml` with sample preferences, and optional GitHub Pages deployment — ready to run.
 
+For full API and platform documentation, see the [Revel Digital Developer Portal](https://developer.reveldigital.com).
+
 ## Supported Frameworks
 
 | Framework | Bundler | SDK Library |
@@ -77,13 +79,24 @@ revel-gadget-skill/
 
 ## Related Resources
 
-- [Revel Digital Client SDK](https://github.com/RevelDigital/reveldigital-client-sdk) — SDK for React, Vue, and Vanilla JS
-- [Revel Digital Player Client](https://www.npmjs.com/package/@reveldigital/player-client) — Angular-native library with DI & RxJS
-- [Gadgetizer CLI](https://www.npmjs.com/package/@reveldigital/gadgetizer) — Generates gadget XML from `gadget.yaml`
-- [Revel Digital Developer Docs](https://developer.reveldigital.com/gadgets/) — Full gadget development guide
-- [Demo: React Gadget](https://github.com/RevelDigital/gadget-demo-react) — Official React demo
-- [Demo: Vue Gadget](https://github.com/RevelDigital/gadget-demo-vue) — Official Vue demo
-- [Demo: Vanilla JS Gadget](https://github.com/RevelDigital/gadget-demo-vanilla-js) — Official Vanilla JS demo
+### Documentation
+
+- [Revel Digital Developer Portal](https://developer.reveldigital.com) — Platform docs, APIs, and integration guides
+- [Gadget Development Guide](https://developer.reveldigital.com/gadgets/) — End-to-end guide for building gadgets
+
+### NPM Packages
+
+- [@reveldigital/client-sdk](https://www.npmjs.com/package/@reveldigital/client-sdk) — Runtime SDK for React, Vue, and Vanilla JS
+- [@reveldigital/player-client](https://www.npmjs.com/package/@reveldigital/player-client) — Angular-native library with DI & RxJS
+- [@reveldigital/gadget-types](https://www.npmjs.com/package/@reveldigital/gadget-types) — TypeScript types for the OpenSocial `gadgets.Prefs` API
+- [@reveldigital/gadgetizer](https://www.npmjs.com/package/@reveldigital/gadgetizer) — CLI that generates gadget XML from `gadget.yaml`
+
+### Source & Demos
+
+- [Revel Digital Client SDK (GitHub)](https://github.com/RevelDigital/reveldigital-client-sdk)
+- [Demo: React Gadget](https://github.com/RevelDigital/gadget-demo-react)
+- [Demo: Vue Gadget](https://github.com/RevelDigital/gadget-demo-vue)
+- [Demo: Vanilla JS Gadget](https://github.com/RevelDigital/gadget-demo-vanilla-js)
 
 ## Building the .skill ZIP
 

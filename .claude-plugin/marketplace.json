@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/marketplace.json",
+  "name": "reveldigital",
+  "owner": {
+    "name": "Revel Digital",
+    "email": "support@reveldigital.com",
+    "url": "https://www.reveldigital.com"
+  },
+  "plugins": [
+    {
+      "name": "revel-gadget",
+      "source": "./revel-gadget-skill",
+      "description": "Scaffold and build Revel Digital digital signage gadgets using the @reveldigital/client-sdk. Supports Angular, React, Vue, and Vanilla JS with optional GitHub Pages deployment.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Revel Digital",
+        "email": "support@reveldigital.com",
+        "url": "https://www.reveldigital.com"
+      },
+      "homepage": "https://github.com/RevelDigital/reveldigital-gadget-skill",
+      "repository": "https://github.com/RevelDigital/reveldigital-gadget-skill",
+      "license": "MIT",
+      "category": "development",
+      "keywords": [
+        "revel-digital",
+        "digital-signage",
+        "gadget",
+        "scaffold",
+        "angular",
+        "react",
+        "vue",
+        "vanilla-js",
+        "github-pages",
+        "gadgetizer"
+      ]
+    }
+  ]
+}
