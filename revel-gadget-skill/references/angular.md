@@ -2,6 +2,9 @@
 
 Scaffold a Revel Digital gadget using Angular + the **`@reveldigital/player-client`** library.
 
+Also apply the shared `references/signage.md` (theme tokens, accessibility, readable type), and
+`references/datatable.md` when the gadget displays CMS data-table content.
+
 **Important:** Angular gadgets do NOT use `@reveldigital/client-sdk`. Instead, they use `@reveldigital/player-client`, an Angular-native library that provides an injectable `PlayerClientService` with RxJS observables for player lifecycle events. It also includes an `ng add` schematic that auto-configures the project.
 
 ## Scaffolding Approach

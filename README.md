@@ -20,6 +20,8 @@ For full API and platform documentation, see the [Revel Digital Developer Portal
 - Full project with `package.json`, build tooling, and framework boilerplate
 - `gadget.yaml` with sample preferences (string, bool, style, enum) including conditional `depends` visibility
 - SDK integration with demo UI showing device info, preferences, and player actions
+- **Live data tables** — read CMS data tables with filtering, sorting, and real-time row-change events via `createDataTable()` (see `references/datatable.md`)
+- **Signage best practices** — a theme-token system, Section 508 / WCAG contrast, distance-readable type, and reduced-motion baked in (see `references/signage.md`)
 - `build:gadget` script chaining the framework build with the [Gadgetizer](https://www.npmjs.com/package/@reveldigital/gadgetizer) CLI
 - GitHub Actions workflow for automated deployment to GitHub Pages (optional)
 
@@ -28,8 +30,8 @@ For full API and platform documentation, see the [Revel Digital Developer Portal
 ### Claude.ai (Web / Desktop / Mobile)
 
 1. Download the latest release ZIP from the [Releases](../../releases) page, or [download the skill directly](../../raw/main/revel-gadget-skill.zip)
-2. In Claude, go to **Settings → Features → Skills**
-3. Click **Add Custom Skill** and upload the ZIP
+2. In Claude, go to **Settings → Capabilities → Skills**
+3. Click **Upload skill** and select the ZIP
 4. Toggle the skill **ON**
 
 > Requires **Code Execution** to be enabled in Settings → Capabilities.
@@ -92,7 +94,9 @@ Claude will ask for any missing details (framework, name, hosting preference), t
 │       ├── react.md            # Vite + React + TypeScript scaffold
 │       ├── vue.md              # Vite + Vue 3 + JavaScript scaffold
 │       ├── vanilla.md          # Parcel + plain JS scaffold
-│       └── angular.md          # Angular CLI + @reveldigital/player-client scaffold
+│       ├── angular.md          # Angular CLI + @reveldigital/player-client scaffold
+│       ├── datatable.md        # Live data tables (createDataTable) — gadget-only
+│       └── signage.md          # Theme / accessibility / readability best practices
 ├── build.sh                    # Rebuilds revel-gadget-skill.zip
 └── revel-gadget-skill.zip      # Prebuilt Claude.ai upload bundle
 ```
@@ -120,18 +124,15 @@ Claude will ask for any missing details (framework, name, hosting preference), t
 
 ## Building the .skill ZIP
 
-To rebuild the distributable ZIP from source:
-
-```bash
-cd revel-gadget-skill
-zip -r ../revel-gadget-skill.zip .
-```
-
-Or use the included build script:
+To rebuild the distributable ZIP from source, use the build script (it zips the
+`revel-gadget-skill/` folder with the correct structure):
 
 ```bash
 ./build.sh
 ```
+
+> Pushing changes to `main` also rebuilds the ZIP automatically and, when the
+> `marketplace.json` version is bumped, cuts a GitHub release with the ZIP attached.
 
 ## License
 

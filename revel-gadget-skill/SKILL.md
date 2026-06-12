@@ -35,6 +35,18 @@ Read the appropriate framework reference file **before generating any code**:
 
 Follow the reference file instructions precisely — they contain the exact file structure, dependencies, and sample code for each framework.
 
+Also read these shared references:
+
+| Always read | Purpose |
+|-------------|---------|
+| `references/signage.md` | Theme tokens, accessibility (508 / WCAG), and distance readability — apply to every scaffold |
+| `references/datatable.md` | **When the gadget displays CMS data-table content** — live `createDataTable()` reads, filtering/sorting, and real-time row events |
+
+**Apply `references/signage.md` to every scaffold** (not optional): ship `theme.css` and import it
+globally, recolor `--brand` to the user's brand (and honor any `color`/`style` gadget preference),
+use semantic landmarks with `aria-live` for dynamic content (clocks, tickers), zone-relative readable
+type, and `prefers-reduced-motion` guards.
+
 ### 3. Common dependencies
 
 **React, Vue, and Vanilla JS** projects use:
@@ -247,7 +259,19 @@ prefs.getBool('myBoolPref');
 prefs.getFloat('myFloatPref');
 prefs.getInt('myIntPref');
 prefs.getArray('myListPref');
+
+// Data tables (gadget-only — see references/datatable.md for the full API)
+const dt = client.createDataTable('tbl_id');                  // throws if datatable feature not enabled
+const rows = await dt.getRows({ sort: 'name', sortDir: 'asc' });   // rows[].data.<columnKey>
+dt.on('rowUpdated', (change) => { /* real-time */ });
+dt.startPolling(30000);
+dt.dispose();
+const cfg = client.createDataTableFromPref(prefs.getString('rdDataTable')); // from a `datatable` pref
 ```
+
+> **Data tables are a gadget-only capability** — the player injects the data-table library into
+> gadgets but not full-screen webapps. Requires the `datatable` feature in `gadget.yaml`
+> `requirements`. See `references/datatable.md`.
 
 ## Gadgetizer
 

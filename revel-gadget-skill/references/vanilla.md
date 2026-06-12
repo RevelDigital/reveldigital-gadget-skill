@@ -2,6 +2,9 @@
 
 Scaffold a Revel Digital gadget using Parcel + plain HTML/CSS/JS.
 
+Also apply the shared `references/signage.md` (theme tokens, accessibility, readable type), and
+`references/datatable.md` when the gadget displays CMS data-table content.
+
 Parcel is a zero-config bundler that handles module resolution, bundling, and asset optimization out of the box. The official Revel Digital vanilla JS demo uses Parcel for this reason — it requires no config files beyond `package.json`.
 
 ## Project Structure

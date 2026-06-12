@@ -2,6 +2,9 @@
 
 Scaffold a Revel Digital gadget using Vite + Vue 3 + JavaScript (TypeScript optional).
 
+Also apply the shared `references/signage.md` (theme tokens, accessibility, readable type), and
+`references/datatable.md` when the gadget displays CMS data-table content.
+
 ## Project Structure
 
 ```
