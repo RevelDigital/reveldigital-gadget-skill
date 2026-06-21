@@ -11,7 +11,7 @@
       "name": "revel-gadget",
       "source": "./revel-gadget-skill",
       "description": "Scaffold and build Revel Digital digital signage gadgets using the @reveldigital/client-sdk. Live data tables, a theme system, and Section 508 / WCAG accessibility are baked in. Supports Angular, React, Vue, and Vanilla JS with optional GitHub Pages deployment.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Revel Digital",
         "email": "support@reveldigital.com",

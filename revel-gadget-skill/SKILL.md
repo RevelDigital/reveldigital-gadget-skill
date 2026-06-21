@@ -199,10 +199,32 @@ Adjust `publish_dir` based on framework — see each reference file for the corr
 
 ### 7. Sample UX that demonstrates the SDK
 
+**Use the Client SDK, not browser equivalents.** The player exposes device context through the SDK
+(`@reveldigital/client-sdk`; Angular: `@reveldigital/player-client`). Always prefer it over the
+browser API, and fall back to the browser only when off-device (wrap SDK calls in `try`/`.catch()`):
+
+| Need | Use (SDK) | Instead of |
+|------|-----------|------------|
+| Time / clock | `getDeviceTime()` + `getDeviceTimeZoneName()` (format in the device timezone) | `new Date()` rendered in the browser's timezone |
+| Timezone | `getDeviceTimeZoneName()` / `getDeviceTimeZoneID()` / `getDeviceTimeZoneOffset()` | `Intl…resolvedOptions().timeZone` |
+| Language / locale | `getLanguageCode()` (set `<html lang>`) | `navigator.language` |
+| Location (geo) | `getDevice().location` (lat/long, city/state) | `navigator.geolocation` |
+| Zone size | `getWidth()` / `getHeight()` | `window.innerWidth/innerHeight` |
+| Scheduled duration | `getDuration()` | — |
+| Preview vs. live | `isPreviewMode()` | assuming live |
+| Live CMS data | `createDataTable()` (see `references/datatable.md`) | hard-coded data |
+| Commands | `on(EventType.COMMAND, …)` / `sendCommand()` | — |
+| Analytics | `track()` / `timeEvent()` | — |
+
+> **For a clock gadget**, don't render a bare `new Date()`. Call `getDeviceTime()` once to compute
+> the device↔local offset, tick locally each second from that offset (re-sync every few minutes for
+> drift), and format with `getDeviceTimeZoneName()` so it shows the device's wall-clock time
+> regardless of where the browser runs. Off-device, the offset is 0 → local time.
+
 The scaffolded app should include a working demo that:
 
 1. Initializes the client SDK with `createPlayerClient()`
-2. Fetches all available device/player data (device key, timezone, dimensions, SDK version, preview mode, etc.)
+2. Fetches all available device/player data (device key, timezone, dimensions, SDK version, preview mode, etc.) — via SDK methods, not browser APIs
 3. Reads gadget preferences using `client.getPrefs()` and displays them
 4. Provides action buttons for `sendCommand()`, `track()`, and `finish()`
 5. Shows loading/error states
