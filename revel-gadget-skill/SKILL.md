@@ -135,6 +135,56 @@ prefs:
 
 The `depends` field makes a preference conditionally visible based on other preference values. Condition types: `any_of`, `all_of`, `none_of`.
 
+#### Auto-injected prefs — never redeclare these
+
+The Gadgetizer appends these five hidden prefs to **every** generated gadget XML, unconditionally
+and with no dedup against your `prefs:` list. They are not in the sample above because you never
+write them yourself — but they exist at runtime, so `getPrefs()` can read them.
+
+| Pref | Datatype | Meaning |
+|---|---|---|
+| `rdW` / `rdH` | hidden | Design-time zone width/height in px (defaults 280×190). |
+| `rdKey` | hidden | Device key. Also `await client.getDeviceKey()`. |
+| `ForeColor` | hidden | Foreground colour — **bare hex, no leading `#`**. |
+| `BackColor` | hidden | Background colour — **bare hex, no leading `#`**. Empty means transparent. |
+
+Do not declare a pref that duplicates one of these. A `backgroundColor` pref of your own gives the
+designer two competing background controls, and reusing a name verbatim emits a duplicate
+`UserPref` element.
+
+**Colours are stored without the `#`.** The CMS stores `BackColor: "0d1117"`, so applying the raw
+value as CSS silently does nothing. Prepend the `#` yourself.
+
+**An empty colour means transparent — not "use my default".** Neither colour pref has a
+`default_value`, so unset reads as `''`. Substituting your own default there makes the field
+impossible to clear, which is a real behaviour designers expect: clearing it should let the
+template's own background show through.
+
+```ts
+// WRONG — the designer can never clear this back to transparent.
+const backColor = str('BackColor', '#0d1117');
+
+// RIGHT — empty means transparent; the CMS stores a bare hex.
+function resolveColor(raw: string, whenEmpty = 'transparent'): string {
+  const v = raw.trim();
+  if (!v) return whenEmpty;
+  return v.startsWith('#') ? v : `#${v}`;
+}
+const backColor = resolveColor(getPrefsSafe()?.getString('BackColor') ?? '');
+```
+
+**`rdW`/`rdH` vs `getWidth()`/`getHeight()`.** Prefer the SDK calls at runtime — they read the live
+zone from the player, so they stay correct if it is resized. `rdW`/`rdH` are the design-time values
+baked into the XML: synchronous and available immediately, which makes them a reasonable first-paint
+value before the async call resolves. Outside a player the SDK calls resolve `null`, so fall back to
+the prefs there.
+
+**`ForeColor` vs a `style` pref.** They overlap — the sample `style` pref above already carries
+`color:`. Use a `style` pref when you want the designer to control font family/size alongside colour,
+which `ForeColor` cannot express; let `ForeColor` drive text colour only when that is the sole
+knob you are exposing. Do not wire both to the same element — pick one per element so there is a
+single source of truth.
+
 ### 5. Initial Gadgetizer setup (after GitHub repo creation)
 
 After scaffolding the project and creating a GitHub repository, the developer must run the Gadgetizer **without** the `--build-only` flag for the initial setup:
@@ -412,6 +462,7 @@ When the developer runs `npx gadgetizer` (the initial interactive setup), the to
 - The `gadget.yaml` file must be in the **project root** — the Gadgetizer reads it from there.
 - The gadget XML is generated automatically by the Gadgetizer — never hand-write XML.
 - Preferences defined in `gadget.yaml` become available at runtime via `client.getPrefs()`.
+- **The Gadgetizer injects five hidden prefs into every gadget** (`rdW`, `rdH`, `rdKey`, `ForeColor`, `BackColor`) — never redeclare them or shadow them with your own equivalent. `ForeColor`/`BackColor` are stored as a **bare hex with no leading `#`**, and empty means **transparent**, not "use a default". See *Auto-injected prefs* under `gadget.yaml`.
 - The SDK works both inside and outside the Revel Digital player — when running standalone (during development), methods return sensible defaults or null.
 - **`getPrefs()` throws — it does not reject.** It is synchronous (`return new window.gadgets.Prefs`), so it raises a `TypeError` the moment no player is attached. `.catch()` cannot help here; it must be wrapped in `try`/`catch`. This is the first thing most gadgets call, so an unguarded read kills the whole gadget at startup — blank screen in the dev server and CMS preview. Every pref read should fall back to its `gadget.yaml` default so the gadget still renders standalone. Applies to both `client-sdk` and Angular's `player-client` (identical implementation).
 - **Async Client API methods do not throw outside the player.** `getWidth()`, `getDeviceTime()`, `getDevice()`, etc. all route through `getClient()`, which falls back to a mock (logging *"Client API not available, falling back to mock API"*) and resolves to `null` or a sensible default. Defensive `.catch()` on these is dead code — use it only to substitute a display value (e.g. `?? 'N/A'`), not for error handling.
