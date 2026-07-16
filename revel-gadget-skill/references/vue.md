@@ -127,12 +127,21 @@ const sdkData = ref({
   location: {},
   display: {},
   system: {},
-  prefs: null
+  prefs: {}
 })
 const isLoading = ref(true)
 const error = ref(null)
 
 let clientInstance = null
+
+/** getPrefs() throws outside the player — never call it unguarded. */
+function getPrefsSafe(client) {
+  try {
+    return client.getPrefs()
+  } catch {
+    return undefined
+  }
+}
 
 onMounted(async () => {
   try {
@@ -166,10 +175,15 @@ onMounted(async () => {
       commandMap: await client.getCommandMap().catch(() => 'N/A')
     }
 
-    try {
-      sdkData.value.prefs = client.getPrefs()
-    } catch {
-      sdkData.value.prefs = null
+    // getPrefs() THROWS (it does not return undefined) when no player is attached, so it must be
+    // try/caught — .catch() cannot help with a synchronous throw. Resolve to plain values here,
+    // each falling back to its gadget.yaml default, so the gadget renders standalone in `npm run dev`.
+    const p = getPrefsSafe(client)
+    sdkData.value.prefs = {
+      myStringPref: p?.getString('myStringPref') || 'test string',
+      myBoolPref: p?.getBool('myBoolPref') ?? true,
+      myStylePref: p?.getString('myStylePref') || 'font-family:Verdana;color:rgb(255, 255, 255);font-size:18px;',
+      myEnumPref: p?.getString('myEnumPref') || 'fast'
     }
   } catch (err) {
     error.value = err.message || 'Unknown error'
@@ -254,13 +268,13 @@ function handleFinish() {
         </div>
       </section>
 
-      <section v-if="sdkData.prefs" class="section">
+      <section class="section">
         <h2>Preferences (from gadget.yaml)</h2>
         <div class="data-grid">
-          <div class="data-item"><label>myStringPref:</label><span>{{ sdkData.prefs.getString('myStringPref') ?? 'N/A' }}</span></div>
-          <div class="data-item"><label>myBoolPref:</label><span>{{ sdkData.prefs.getBool('myBoolPref') ?? 'N/A' }}</span></div>
-          <div class="data-item"><label>myEnumPref:</label><span>{{ sdkData.prefs.getString('myEnumPref') ?? 'N/A' }}</span></div>
-          <div class="data-item"><label>myStylePref:</label><span>{{ sdkData.prefs.getString('myStylePref') ?? 'N/A' }}</span></div>
+          <div class="data-item"><label>myStringPref:</label><span>{{ sdkData.prefs.myStringPref }}</span></div>
+          <div class="data-item"><label>myBoolPref:</label><span>{{ sdkData.prefs.myBoolPref }}</span></div>
+          <div class="data-item"><label>myEnumPref:</label><span>{{ sdkData.prefs.myEnumPref }}</span></div>
+          <div class="data-item"><label>myStylePref:</label><span>{{ sdkData.prefs.myStylePref }}</span></div>
         </div>
       </section>
     </template>

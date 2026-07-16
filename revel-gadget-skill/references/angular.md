@@ -296,15 +296,26 @@ export class AppComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Read preferences immediately (synchronous)
-    const p = this.client.getPrefs();
-    if (p) {
-      this.prefs = {
-        myStringPref: p.getString('myStringPref') ?? 'N/A',
-        myBoolPref: p.getBool('myBoolPref') ?? 'N/A',
-        myStylePref: p.getString('myStylePref') ?? 'N/A',
-        myEnumPref: p.getString('myEnumPref') ?? 'N/A'
-      };
+    // Read preferences immediately (synchronous).
+    // getPrefs() THROWS (it does not return undefined) when no player is attached — it is
+    // `new window['gadgets']['Prefs']()` under the hood — so an `if (p)` guard would not help.
+    // It must be try/caught, and every read falls back to its gadget.yaml default so the
+    // gadget still renders standalone in `ng serve` and CMS preview.
+    const p = this.getPrefsSafe();
+    this.prefs = {
+      myStringPref: p?.getString('myStringPref') || 'test string',
+      myBoolPref: p?.getBool('myBoolPref') ?? true,
+      myStylePref: p?.getString('myStylePref') || 'font-family:Verdana;color:rgb(255, 255, 255);font-size:18px;',
+      myEnumPref: p?.getString('myEnumPref') || 'fast'
+    };
+  }
+
+  /** getPrefs() throws outside the player — never call it unguarded. */
+  private getPrefsSafe(): gadgets.Prefs | undefined {
+    try {
+      return this.client.getPrefs();
+    } catch {
+      return undefined;
     }
   }
 

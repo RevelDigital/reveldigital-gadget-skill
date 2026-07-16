@@ -201,7 +201,9 @@ Adjust `publish_dir` based on framework — see each reference file for the corr
 
 **Use the Client SDK, not browser equivalents.** The player exposes device context through the SDK
 (`@reveldigital/client-sdk`; Angular: `@reveldigital/player-client`). Always prefer it over the
-browser API, and fall back to the browser only when off-device (wrap SDK calls in `try`/`.catch()`):
+browser API, and fall back to the browser only when off-device. Off-device, the async methods below
+already degrade to a mock and resolve `null` — the one call that needs guarding is `getPrefs()`,
+which throws synchronously and must be wrapped in `try`/`catch` (see Important Notes):
 
 | Need | Use (SDK) | Instead of |
 |------|-----------|------------|
@@ -225,11 +227,84 @@ The scaffolded app should include a working demo that:
 
 1. Initializes the client SDK with `createPlayerClient()`
 2. Fetches all available device/player data (device key, timezone, dimensions, SDK version, preview mode, etc.) — via SDK methods, not browser APIs
-3. Reads gadget preferences using `client.getPrefs()` and displays them
+3. Reads gadget preferences via a guarded `getPrefs()` (`try`/`catch`, each read falling back to its
+   `gadget.yaml` default) and displays them — **all four scaffolds must do this**, including Vanilla JS
 4. Provides action buttons for `sendCommand()`, `track()`, and `finish()`
 5. Shows loading/error states
+6. Handles the lifecycle: pauses on `STOP` and resumes on `START` (see **Lifecycle** below)
 
 This gives the developer a working starting point they can see running immediately.
+
+## Lifecycle: pausing on `STOP`, resuming on `START`
+
+`START` and `STOP` are not just notifications — they bracket the periods when the gadget's zone is
+actually **visible**. A gadget that ignores them keeps animating and keeps burning through timers
+while hidden, then jumps or cascades the moment it reappears. Any gadget with animation, rotation, or
+timed content must handle them.
+
+**`START` fires every time the zone is shown, not just once.** Treating it as "initialize" restarts
+the gadget from its first item on every re-show. It should resume:
+
+```ts
+let started = false;
+
+client.on(EventType.START, () => {
+  if (started) { setPaused(false); return; }   // resume — don't restart
+  started = true;
+  void start();
+});
+
+client.on(EventType.STOP, () => setPaused(true));
+```
+
+**Author anything pausable as a keyframe animation, not a transition.** The obvious freeze —
+
+```css
+.is-paused * { animation-play-state: paused !important; }
+```
+
+— pauses `@keyframes` animations and **silently does nothing to CSS transitions**. A progress bar
+built as a `width` transition keeps sliding while the zone is hidden. This is a design constraint to
+decide up front; it's painful to retrofit.
+
+**Pausing animation is only half of it — timers keep running.** `setTimeout`/`setInterval` keep
+firing while hidden, so a rotating gadget burns through several items the instant it reappears.
+Sleeps must *stop accruing time*, banking elapsed time across a pause rather than skipping a frame:
+
+```ts
+/** A sleep that only counts down while playing. */
+async function sleep(ms: number): Promise<void> {
+  let remaining = ms;
+  for (;;) {
+    await whenResumed();
+    const startedAt = Date.now();
+    if (await sleepUntilPaused(remaining) === 'done') return;
+    remaining -= Date.now() - startedAt;   // bank elapsed, wait for resume
+    if (remaining <= 0) return;
+  }
+}
+```
+
+With banking, an item 1s into a 12s rotation that is paused for 8s correctly takes ~11.6s after
+resume to advance, with exactly one transition. Without it, it fires immediately on resume and
+cascades through several items.
+
+### Testing lifecycle handling without a player
+
+`createPlayerClient()` installs `window.RevelDigital.Controller`, whose `onStart()` / `onStop()` /
+`onCommand()` dispatch the same `RevelDigital.*` CustomEvents the real player fires. That means
+lifecycle handling is verifiable in a plain browser console — this drives the genuine `STOP` path,
+not a mock:
+
+```js
+window.RevelDigital.Controller.onStop();              // pause
+window.RevelDigital.Controller.onStart();             // resume
+window.RevelDigital.Controller.onCommand('foo','bar') // command
+```
+
+These hooks exist unless the client was created with `{ useLegacyEventHandling: false }`. They are
+currently an implementation detail rather than a documented test API — tracked upstream as
+RevelDigital/reveldigital-client-sdk#19.
 
 ## SDK API Quick Reference (React, Vue, Vanilla JS)
 
@@ -275,12 +350,21 @@ client.track(eventName, properties);    // track analytics event
 client.timeEvent(eventName);            // start timing an event
 
 // Preferences (Gadgets API — types from @reveldigital/gadget-types)
-const prefs = client.getPrefs();
-prefs.getString('myStringPref');
-prefs.getBool('myBoolPref');
-prefs.getFloat('myFloatPref');
-prefs.getInt('myIntPref');
-prefs.getArray('myListPref');
+// getPrefs() THROWS when no player is attached — always guard it, and always
+// fall back to the gadget.yaml default so the gadget renders standalone in dev.
+// Note: the .d.ts says `gadgets.Prefs | undefined`, but it never returns undefined —
+// it throws instead, so an `if (prefs)` guard does NOT protect you.
+function getPrefsSafe(): gadgets.Prefs | undefined {
+  try { return client.getPrefs(); } catch { return undefined; }
+}
+
+const str  = (n: string, fallback: string)  => getPrefsSafe()?.getString(n) || fallback;
+const bool = (n: string, fallback: boolean) => getPrefsSafe()?.getBool(n) ?? fallback;
+
+str('myStringPref', 'test string');   // matches default_value in gadget.yaml
+bool('myBoolPref', true);
+
+// Other readers on the Prefs object: getFloat(), getInt(), getArray()
 
 // Data tables (gadget-only — see references/datatable.md for the full API)
 const dt = client.createDataTable('tbl_id');                  // throws if datatable feature not enabled
@@ -329,6 +413,7 @@ When the developer runs `npx gadgetizer` (the initial interactive setup), the to
 - The gadget XML is generated automatically by the Gadgetizer — never hand-write XML.
 - Preferences defined in `gadget.yaml` become available at runtime via `client.getPrefs()`.
 - The SDK works both inside and outside the Revel Digital player — when running standalone (during development), methods return sensible defaults or null.
-- Always wrap SDK calls in `.catch()` for graceful error handling — some methods may throw when running outside the player.
+- **`getPrefs()` throws — it does not reject.** It is synchronous (`return new window.gadgets.Prefs`), so it raises a `TypeError` the moment no player is attached. `.catch()` cannot help here; it must be wrapped in `try`/`catch`. This is the first thing most gadgets call, so an unguarded read kills the whole gadget at startup — blank screen in the dev server and CMS preview. Every pref read should fall back to its `gadget.yaml` default so the gadget still renders standalone. Applies to both `client-sdk` and Angular's `player-client` (identical implementation).
+- **Async Client API methods do not throw outside the player.** `getWidth()`, `getDeviceTime()`, `getDevice()`, etc. all route through `getClient()`, which falls back to a mock (logging *"Client API not available, falling back to mock API"*) and resolves to `null` or a sensible default. Defensive `.catch()` on these is dead code — use it only to substitute a display value (e.g. `?? 'N/A'`), not for error handling.
 - Always clean up event listeners on component unmount to avoid memory leaks.
 - Use TypeScript types from the SDK: `import type { PlayerClient, EventType, IEventProperties, IOptions } from '@reveldigital/client-sdk';` (for Angular, import from `@reveldigital/player-client` instead)

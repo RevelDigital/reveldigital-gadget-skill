@@ -111,7 +111,28 @@ The `base: './'` ensures relative asset paths. For production GitHub Pages, repl
 }
 ```
 
-Note: `isolatedModules` is intentionally omitted. The SDK's `EventType` is a `const enum` which is incompatible with `isolatedModules`.
+**Note: `isolatedModules` is intentionally omitted**, even though Vite's own TypeScript templates
+enable it by default. The SDK's `EventType` is declared as an ambient `const enum`, which per-file
+transpilation (Vite/esbuild) cannot inline. Enabling it produces:
+
+```
+error TS2748: Cannot access ambient const enums when 'isolatedModules' is enabled.
+```
+
+If you start from a Vite-style config that already sets `isolatedModules: true`, remove it rather
+than working around the error with a cast:
+
+```ts
+// DON'T — this silently decouples the literal from the enum. If an enum value ever
+// changes, this keeps compiling and fails at runtime.
+const EVENT_START = 'Start' as EventType;
+```
+
+Only the `.d.ts` is wrong here — the SDK's runtime already exports a real enum object
+(`{START:"Start", STOP:"Stop", COMMAND:"Command", CONFIG:"Config", POSTMESSAGE:"PostMessage"}`), so
+the upstream fix is a zero-runtime-change `const enum` → `enum`, tracked as
+RevelDigital/reveldigital-client-sdk#15. Once that ships, add `"isolatedModules": true` back to
+`tsconfig.app.json` (tracked as RevelDigital/reveldigital-gadget-skill#3).
 
 ## tsconfig.node.json
 
@@ -197,6 +218,15 @@ interface ClientData {
   height: number | null
   duration: number | null
   sdkVersion: string
+}
+
+/** getPrefs() throws outside the player — never call it unguarded. */
+function getPrefsSafe(): gadgets.Prefs | undefined {
+  try {
+    return createPlayerClient().getPrefs()
+  } catch {
+    return undefined
+  }
 }
 
 function App() {
@@ -291,9 +321,16 @@ function App() {
   if (loading) return <div className="app-container"><h1>Revel Digital Client SDK Demo</h1><p>Loading...</p></div>
   if (error) return <div className="app-container"><h1>Revel Digital Client SDK Demo</h1><p className="error">Error: {error}</p></div>
 
-  // Read preferences
-  let prefs: ReturnType<ReturnType<typeof createPlayerClient>['getPrefs']> | null = null
-  try { prefs = createPlayerClient().getPrefs() } catch { prefs = null }
+  // Read preferences. getPrefs() THROWS (it does not return undefined) when no player is
+  // attached, so it must be try/caught — .catch() cannot help with a synchronous throw.
+  // Each read falls back to its gadget.yaml default so the gadget renders standalone.
+  const p = getPrefsSafe()
+  const prefs = {
+    myStringPref: p?.getString('myStringPref') || 'test string',
+    myBoolPref: p?.getBool('myBoolPref') ?? true,
+    myStylePref: p?.getString('myStylePref') || 'font-family:Verdana;color:rgb(255, 255, 255);font-size:18px;',
+    myEnumPref: p?.getString('myEnumPref') || 'fast'
+  }
 
   return (
     <div className="app-container">
@@ -339,17 +376,15 @@ function App() {
         </section>
       )}
 
-      {prefs && (
-        <section className="section">
-          <h2>Preferences (from gadget.yaml)</h2>
-          <div className="data-grid">
-            <div className="data-item"><label>myStringPref:</label><span>{prefs.getString('myStringPref') ?? 'N/A'}</span></div>
-            <div className="data-item"><label>myBoolPref:</label><span>{String(prefs.getBool('myBoolPref') ?? 'N/A')}</span></div>
-            <div className="data-item"><label>myEnumPref:</label><span>{prefs.getString('myEnumPref') ?? 'N/A'}</span></div>
-            <div className="data-item"><label>myStylePref:</label><span>{prefs.getString('myStylePref') ?? 'N/A'}</span></div>
-          </div>
-        </section>
-      )}
+      <section className="section">
+        <h2>Preferences (from gadget.yaml)</h2>
+        <div className="data-grid">
+          <div className="data-item"><label>myStringPref:</label><span>{prefs.myStringPref}</span></div>
+          <div className="data-item"><label>myBoolPref:</label><span>{String(prefs.myBoolPref)}</span></div>
+          <div className="data-item"><label>myEnumPref:</label><span>{prefs.myEnumPref}</span></div>
+          <div className="data-item"><label>myStylePref:</label><span>{prefs.myStylePref}</span></div>
+        </div>
+      </section>
     </div>
   )
 }

@@ -106,6 +106,16 @@ The `publicUrl` in `targets.default` ensures relative asset paths. For productio
         </section>
 
         <section class="section">
+            <h2>Preferences (from gadget.yaml)</h2>
+            <div class="data-grid">
+                <div class="data-item"><label>myStringPref:</label><span id="myStringPref"></span></div>
+                <div class="data-item"><label>myBoolPref:</label><span id="myBoolPref"></span></div>
+                <div class="data-item"><label>myEnumPref:</label><span id="myEnumPref"></span></div>
+                <div class="data-item"><label>myStylePref:</label><span id="myStylePref"></span></div>
+            </div>
+        </section>
+
+        <section class="section">
             <h2>Device Details</h2>
             <pre id="deviceDetails" class="json-display"></pre>
         </section>
@@ -128,6 +138,30 @@ import { createPlayerClient } from '@reveldigital/client-sdk';
 
 const client = createPlayerClient();
 
+/**
+ * getPrefs() THROWS (it does not return undefined) when no player is attached — it is
+ * `new window.gadgets.Prefs` under the hood. .catch() cannot help with a synchronous
+ * throw, so it must be try/caught. There is no framework error boundary here to contain
+ * it: one unguarded call blanks the entire page.
+ */
+function getPrefsSafe() {
+    try {
+        return client.getPrefs();
+    } catch {
+        return undefined;
+    }
+}
+
+/** Every read falls back to its gadget.yaml default so the gadget renders standalone. */
+function updatePrefs() {
+    const p = getPrefsSafe();
+    document.getElementById('myStringPref').textContent = p?.getString('myStringPref') || 'test string';
+    document.getElementById('myBoolPref').textContent = String(p?.getBool('myBoolPref') ?? true);
+    document.getElementById('myEnumPref').textContent = p?.getString('myEnumPref') || 'fast';
+    document.getElementById('myStylePref').textContent =
+        p?.getString('myStylePref') || 'font-family:Verdana;color:rgb(255, 255, 255);font-size:18px;';
+}
+
 async function updateValues() {
     document.getElementById('deviceTime').textContent = await client.getDeviceTime().catch(() => 'N/A');
     document.getElementById('deviceTimeZoneName').textContent = await client.getDeviceTimeZoneName().catch(() => 'N/A');
@@ -149,9 +183,13 @@ async function updateValues() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    updatePrefs();
     updateValues();
 
-    document.getElementById('refreshBtn').addEventListener('click', updateValues);
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        updatePrefs();
+        updateValues();
+    });
 
     document.getElementById('sendCommandBtn').addEventListener('click', () => {
         client.sendCommand('TestCommand', 'TestArg');
