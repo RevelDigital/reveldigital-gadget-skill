@@ -58,6 +58,7 @@ jobs:
         id: ver
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.bump }}" ]; then
             # Manual: bump from the latest existing tag.
@@ -75,20 +76,41 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-          # Skip if this version already has a release or tag (idempotent — no release spam).
-          if gh release view "$TAG" >/dev/null 2>&1 || git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Release/tag $TAG already exists — skipping release."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "Will release $TAG."
-          fi
+          # Skip only if the RELEASE itself exists. The tag is NOT a valid proxy: tagging
+          # and releasing are separate steps, so a failure between them strands a tag with
+          # no release — and keying off the tag would then skip that release forever.
+          #
+          # A transient API error must not be read as "no release" (re-releases) or as
+          # "release exists" (skips forever). Retry, then fail loudly so a re-run can fix it.
+          for attempt in 1 2 3 4 5; do
+            if OUT=$(gh api "repos/$REPO/releases/tags/$TAG" 2>&1); then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Release $TAG already exists — skipping release."
+              exit 0
+            fi
+            if grep -qi 'not found\|HTTP 404' <<<"$OUT"; then
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+              echo "No release $TAG yet — will release."
+              exit 0
+            fi
+            echo "Attempt $attempt: release lookup failed, retrying: $(head -c 200 <<<"$OUT")"
+            sleep $((attempt * 10))
+          done
+          echo "::error::Could not determine whether release $TAG exists (GitHub API degraded?). Re-run this job once the API recovers."
+          exit 1
 
       - name: Tag the release commit
         if: steps.ver.outputs.skip == 'false'
         run: |
-          git tag "${{ steps.ver.outputs.tag }}"
-          git push origin "${{ steps.ver.outputs.tag }}"
+          TAG="${{ steps.ver.outputs.tag }}"
+          # Idempotent: an earlier run may have pushed the tag but failed before creating
+          # the release. Reuse the existing tag rather than moving it.
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists — reusing it."
+          else
+            git tag "$TAG"
+          fi
+          git push origin "refs/tags/$TAG" || echo "Tag $TAG is already on the remote — reusing it."
 
       - name: Create Release
         if: steps.ver.outputs.skip == 'false'
