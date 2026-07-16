@@ -103,6 +103,7 @@ The `base: './'` ensures relative asset paths. For production GitHub Pages, repl
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
+    "isolatedModules": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
@@ -111,28 +112,24 @@ The `base: './'` ensures relative asset paths. For production GitHub Pages, repl
 }
 ```
 
-**Note: `isolatedModules` is intentionally omitted**, even though Vite's own TypeScript templates
-enable it by default. The SDK's `EventType` is declared as an ambient `const enum`, which per-file
-transpilation (Vite/esbuild) cannot inline. Enabling it produces:
+`isolatedModules` matches what Vite's own TypeScript templates enable by default, and catches source
+patterns that break under the per-file transpilation Vite/esbuild performs.
+
+It requires `@reveldigital/client-sdk` **0.6.0 or newer**. Earlier versions declared `EventType` as an
+ambient `const enum`, which per-file transpilation cannot inline, so importing it failed with:
 
 ```
 error TS2748: Cannot access ambient const enums when 'isolatedModules' is enabled.
 ```
 
-If you start from a Vite-style config that already sets `isolatedModules: true`, remove it rather
-than working around the error with a cast:
+If you pin an SDK older than 0.6.0 and hit that error, upgrade the SDK. Do not work around it with a
+cast:
 
 ```ts
 // DON'T — this silently decouples the literal from the enum. If an enum value ever
 // changes, this keeps compiling and fails at runtime.
 const EVENT_START = 'Start' as EventType;
 ```
-
-Only the `.d.ts` is wrong here — the SDK's runtime already exports a real enum object
-(`{START:"Start", STOP:"Stop", COMMAND:"Command", CONFIG:"Config", POSTMESSAGE:"PostMessage"}`), so
-the upstream fix is a zero-runtime-change `const enum` → `enum`, tracked as
-RevelDigital/reveldigital-client-sdk#15. Once that ships, add `"isolatedModules": true` back to
-`tsconfig.app.json` (tracked as RevelDigital/reveldigital-gadget-skill#3).
 
 ## tsconfig.node.json
 
